@@ -3,13 +3,14 @@ import time
 import numpy as np
 import pandas as pd
 from EA.RCGA import RCGA
+from libs.AF import Single_AF
 from datetime import datetime
 from config import args_parser
-from libs.Client import Client
 from libs.Server import Server
+from libs.Client import Client
 from libs.Ray_Client import RayClient
-from utils.data_utils import sort_data
 from utils.data_sop import init_samples
+from utils.data_utils import sort_data
 
 import ray
 
@@ -21,27 +22,27 @@ ray.init(include_dashboard=False)
 # parse args
 args = args_parser()
 
-if args.func_name == 'Ackley':
+if args.func == 'Ackley':
     from SOP.Ackley import Ackley as Function
 
     lb, ub = -32.768, 32.768
-elif args.func_name == 'Griewank':
+elif args.func == 'Griewank':
     from SOP.Griewank import Griewank as Function
 
     lb, ub = -600, 600
-elif args.func_name == 'Ellipsoid':
+elif args.func == 'Ellipsoid':
     from SOP.Ellipsoid import Ellipsoid as Function
 
     lb, ub = -5.12, 5.12
-elif args.func_name == 'Rastrigin':
+elif args.func == 'Rastrigin':
     from SOP.Rastrigin import Rastrigin as Function
 
     lb, ub = -5, 5
-elif args.func_name == 'Rosenbrock':
+elif args.func == 'Rosenbrock':
     from SOP.Rosenbrock import Rosenbrock as Function
 
     lb, ub = -2.048, 2.048
-elif args.func_name == 'Schwefel':
+elif args.func == 'Schwefel':
     from SOP.Schwefel import Schwefel as Function
 
     lb, ub = -500, 500
@@ -49,6 +50,7 @@ elif args.func == 'F13':
     from SOP.cec2005.F13 import CEC_F13 as Function
 
     lb, ub = -5, 5
+
 else:
     Function = None
     lb, ub = None, None
@@ -57,16 +59,18 @@ else:
 # total number of clients
 N = args.num_users
 num_T = int(args.frac * N)
+# dimension of decision variable
 d = args.d
-num_data = args.num_b4_d * d
+M = 1
+num_b4_d = 5
+num_data = num_b4_d * d
 boot_prob = args.boot_prob
+gens = args.max_gens
 
 up_bound = 1e5
-# dimension of decision variable
 
 kernel_size = 2 * d + 1
 best_pop = []
-
 multi_ub = ub * np.ones(d)
 multi_lb = lb * np.ones(d)
 
@@ -82,15 +86,14 @@ if __name__ == '__main__':
 
     t0 = time.time()
 
-    params = {'E': args.E, 'kernel_size': kernel_size, 'lr': args.lr,
-              'd_out': args.d_out, 'opt': args.opt}
+    params = {'E': args.E, 'kernel_size': kernel_size, 'lr': args.lr, 'd_out': M, 'opt': args.opt}
 
     ray_clients = [RayClient.remote(params, id_num=i) for i in range(num_T)]
     clients = [Client(params, id_num=i) for i in range(num_T)]
 
     for IR in range(Max_IR):
         # re-LHS training data
-        print('\033[1;35;46m Re-LHS ' + args.func_name + ' d=' + str(d) + ' data, ' + str(IR + 1) + ' run\033[0m')
+        print('\033[1;35;46m Re-LHS ' + args.func + ' d=' + str(d) + ' data, ' + str(IR + 1) + ' run\033[0m')
 
         # reset random seed
         now = datetime.now()
@@ -105,21 +108,21 @@ if __name__ == '__main__':
         # define initial local dataset for training, never change
         D_samp, D_label = [[] for i in range(N)], [[] for i in range(N)]
 
-        gap = (args.ub - args.lb) / args.num_users
+        gap = (ub - lb) / N
 
         train_x, train_y = init_samples(func=Function,
-                                        num_b4_d=args.num_b4_d,
+                                        num_b4_d=num_b4_d,
                                         d=d, xlb=lb, xub=ub)
 
         copy_y = copy.deepcopy(train_y)
         copy_index = np.argsort(-copy_y.flatten())
-        record_profiles[0:args.num_b4_d * d, IR] = copy_y[copy_index, :].flatten()
+        record_profiles[0:num_b4_d * d, IR] = copy_y[copy_index, :].flatten()
 
         current_best = np.min(train_y)
 
         for i in range(N):
-            left_b = args.lb + i * gap
-            right_b = args.lb + (i + 1) * gap
+            left_b = lb + i * gap
+            right_b = lb + (i + args.tau) * gap
 
             for j in range(train_x.shape[0]):
 
@@ -136,7 +139,7 @@ if __name__ == '__main__':
         ############################################################################
 
         # count real fitness evaluations
-        Real_FE = args.num_b4_d * d
+        Real_FE = num_data
 
         server = Server(params)
 
@@ -174,6 +177,9 @@ if __name__ == '__main__':
 
                 # 2: overwrite the local model
                 ray_clients[i].synchronize.remote(server_model)
+                # note: it is better to warm up for mini-batch sgd in the first round
+                # if args.opt == 'sgd' and Real_FE == num_b4_d * d:
+                #     ray_clients[i].warm_up.remote(D_x[i], D_y[i])
                 # 3: local training
                 ray_clients[i].train.remote(D_x[i], D_y[i])
 
@@ -186,10 +192,13 @@ if __name__ == '__main__':
 
             print('update, train time: %.2f' % (t2 - t1))
 
-            chosen_pop, _, pop, _1 = RCGA(server.acquisition_function,
+            FU_LCB = Single_AF(server)
+            chosen_pop, _, pop, _1 = RCGA(FU_LCB.LCB,
                                           multi_lb, multi_ub,
                                           args=(clients, 'LCB', 'LG'),
+                                          max_iter=gens,
                                           particle_output=True)
+
             t3 = time.time()
             print('optimization time: %.2f' % (t3 - t2))
 
@@ -205,8 +214,8 @@ if __name__ == '__main__':
                 #     print('found: %.3f' % best_fit)
                 chosen_pop = chosen_pop.reshape(-1, d)
 
-                left_b = args.lb + idx * gap
-                right_b = args.lb + (idx + 1) * gap
+                left_b = lb + idx * gap
+                right_b = lb + (idx + args.tau) * gap
 
                 if not left_b <= chosen_pop[0, 0] <= right_b:
                     if Dl_samp[idx].shape[1] != d:
@@ -224,13 +233,14 @@ if __name__ == '__main__':
 
         round_best_fit[IR] = current_best
     t_final = time.time()
-    print('20 runs elapsed time: %.2f' % (t_final - t0), 's\n')
 
     fit_mean, fit_std = np.mean(round_best_fit), np.std(round_best_fit)
-    print(args.func_name, ', d=', d, ', alpha=', args.alpha)
-    print('Mean: %.3f' % fit_mean, 'std: %.3f' % fit_std)
 
-    file_path = './results/sop/'
+    print(args.func, ', d=', d, ', alpha=%.1f, ' % args.alpha)
+    print('Mean ± std: %.3f' % fit_mean, '$\pm$ %.3f, ' % fit_std)
+    print('20 runs elapsed time: %.2f' % (t_final - t0), 's\n')
+
+    file_path = './results/niid/'
 
     file_name = args.func + '_' + str(d) + '.csv'
 

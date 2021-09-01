@@ -24,6 +24,7 @@ def args_parser():
     parser.add_argument('--boot_prob',  type=float, default=1,      help='bootstrap probability')
     parser.add_argument('--init_type',  type=str,   default='same', help='clients holds the same data or not')
     parser.add_argument('--alpha',      type=float, default=0.0,    help='noisy')
+    parser.add_argument('--tau',        type=float, default=1,      help='non iid')
 
     # Test function arguments
     parser.add_argument('--func',       type=str,   default='F13',  help='test function name')

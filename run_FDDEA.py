@@ -29,6 +29,8 @@ boot_prob = args.boot_prob
 problems = ['Ackley', 'Griewank', 'Ellipsoid', 'Rastrigin', 'Rosenbrock', 'F13']
 ds = [10, 20, 30]
 
+file_path = './results/raw/'
+
 Max_IR = args.runs
 
 N = args.num_users
@@ -43,12 +45,10 @@ lr = args.lr
 
 opt = args.opt
 
-alpha = 0
-
-tau = 10
+alpha = args.alpha
 
 num_T = int(frac * N)
-file_path = './results/sop/'
+
 
 if __name__ == '__main__':
     for prob in problems:
