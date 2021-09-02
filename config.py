@@ -21,8 +21,7 @@ def args_parser():
     parser.add_argument('--lr',         type=float, default=0.06,   help="learning rate")
 
     # optimization arguments
-    parser.add_argument('--boot_prob',  type=float, default=1,      help='bootstrap probability')
-    parser.add_argument('--init_type',  type=str,   default='same', help='clients holds the same data or not')
+    parser.add_argument('--ac_type',    type=str,   default='LG',   help='acuqisition type, LG, L and G')
     parser.add_argument('--alpha',      type=float, default=0.0,    help='noisy')
     parser.add_argument('--tau',        type=float, default=1,      help='non iid')
 
@@ -32,6 +31,8 @@ def args_parser():
     parser.add_argument('--M',          type=int,   default=1,      help="how many objectives")
 
     # other arguments
+    parser.add_argument('--boot_prob',  type=float, default=1,      help='bootstrap probability')
+    parser.add_argument('--init_type',  type=str,   default='same', help='clients holds the same data or not')
     parser.add_argument('--seed',       type=int,   default=1234,   help='random seed (default: 1)')
     args = parser.parse_args()
     return args

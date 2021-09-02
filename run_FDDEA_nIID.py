@@ -29,7 +29,7 @@ boot_prob = args.boot_prob
 problems = ['Ackley', 'Griewank', 'Ellipsoid', 'Rastrigin', 'Rosenbrock', 'F13']
 ds = [10, 20, 30]
 
-file_path = './results/tau10/'
+file_path = './results/tau1/'
 
 Max_IR = args.runs
 
@@ -48,6 +48,8 @@ opt = args.opt
 alpha = args.alpha
 
 tau = args.tau
+
+ac_type = args.ac_type
 
 num_T = int(frac * N)
 
@@ -209,7 +211,7 @@ if __name__ == '__main__':
                     FU_LCB = Single_AF(server)
                     chosen_pop, _, pop, _1 = RCGA(FU_LCB.LCB,
                                                   multi_lb, multi_ub,
-                                                  args=(clients, 'LCB', 'LG'),
+                                                  args=(clients, 'LCB', ac_type),
                                                   max_iter=gens,
                                                   particle_output=True)
                     t3 = time.time()

@@ -16,7 +16,7 @@ import ray
 
 ray.init(include_dashboard=False)
 
-# -------------Experimental mode---------------------------#
+# -------------Debug mode---------------------------#
 # --------Modify hyper-parameters in config----------------#
 
 # parse args
@@ -198,7 +198,7 @@ if __name__ == '__main__':
             FU_LCB = Single_AF(server)
             chosen_pop, _, pop, _1 = RCGA(FU_LCB.LCB,
                                           multi_lb, multi_ub,
-                                          args=(clients, 'LCB', 'LG'),
+                                          args=(clients, 'LCB', args.ac_type),
                                           max_iter=gens,
                                           particle_output=True)
 
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     print('Mean ± std: %.3f' % fit_mean, '$\pm$ %.3f, ' % fit_std)
     print('20 runs elapsed time: %.2f' % (t_final - t0), 's\n')
 
-    file_path = './results/sop/'
+    file_path = './results/raw/'
 
     file_name = args.func + '_' + str(d) + '.csv'
 
