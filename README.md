@@ -70,4 +70,4 @@ If this code helps you in your research, please cite the following publication:
 }
 ```
 
-And the multi-objective extension can be found at [FDD-MOEA][https://github.com/VeritasXu/FDD-MOEA.git]
+And the multi-objective extension can be found at [FDD-MOEA](https://github.com/VeritasXu/FDD-MOEA.git) .
