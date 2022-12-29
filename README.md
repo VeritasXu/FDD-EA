@@ -54,3 +54,20 @@
     ray.init(include_dashboard=False)
 ```
 instead of ray.init() in FDD-EA.py.
+
+### Citation
+If this code helps you in your research, please cite the following publication:
+
+```tex
+@article{xu2021federated,
+  title={A federated data-driven evolutionary algorithm},
+  author={Xu, Jinjin and Jin, Yaochu and Du, Wenli and Gu, Sai},
+  journal={Knowledge-Based Systems},
+  volume={233},
+  pages={107532},
+  year={2021},
+  publisher={Elsevier}
+}
+```
+
+And the multi-objective extension can be found at [FDD-MOEA][https://github.com/VeritasXu/FDD-MOEA.git]
